@@ -51,7 +51,7 @@ suite 'quinn::app', ->
         return done(err) if err?
         try
           expect(res.status-code).to.be 500
-          expect(body).to.be 'Internal Server Error'
+          expect(body).to.contain 'Error: Imma bug'
           expect(res.headers['content-type']).to.be 'text/plain'
           done()
         catch e then return done e

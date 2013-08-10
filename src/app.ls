@@ -1,6 +1,7 @@
 
 require! querystring
 require! http.STATUS_CODES
+require! events.EventEmitter
 
 require! Q: q
 
@@ -23,6 +24,9 @@ default-route =
   handler: ({method, pathname}) ->
     respond.text "Cannot #{method} #{pathname}", 404
 
+default-error-handler = (req, err) ->
+  respond.text err.stack, 500
+
 map-result = (result) ->
   switch typeof! result
   | 'Function' => result
@@ -38,7 +42,16 @@ module.exports = create-app = ->
   match-route = router!
   {push-route} = match-route
 
-  quinn-handler = (req, res) ->
+  app = new EventEmitter()
+
+  app.error-handler = default-error-handler
+
+  app <<< handle-request: (req, res) ->
+    last-resort-response = (err) ->
+      res.writeHead 500, { 'Content-Type': 'text/plain' }
+      res.end STATUS_CODES['500']
+      app.emit 'error', err
+
     [pathname, search] = req.url.split '?'
     query = querystring.parse search
     req <<< { pathname, query }
@@ -46,17 +59,18 @@ module.exports = create-app = ->
     {handler, params} = (match-route req) ? default-route
 
     result = Q.fcall handler, req, params
-    (result `send-to` res).catch (err) ->
-      res.writeHead 500, { 'Content-Type': 'text/plain' }
-      res.end STATUS_CODES['500']
+    (result `send-to` res).catch( (err) ->
+      result = Q.fcall app.error-handler, req, err
+      result `send-to` res
+    ).catch last-resort-response
 
   for let method, verbs of HTTP_VERBS
-    quinn-handler[method] = (route-or-regex, stack-or-handler) ->
+    app[method] = (route-or-regex, stack-or-handler) ->
       handler = stack-or-handler
       push-route route-or-regex, handler, verbs
 
-  quinn-handler <<< all: (route-or-regex, stack-or-handler) ->
+  app <<< all: (route-or-regex, stack-or-handler) ->
     handler = stack-or-handler
     push-route route-or-regex, handler
 
-  quinn-handler
+  app

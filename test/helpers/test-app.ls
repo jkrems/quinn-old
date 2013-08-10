@@ -31,7 +31,7 @@ module.exports = test-app = (init) ->
   setup (done) ->
     app = create-app!
     init app
-    server := create-server app
+    server := create-server app.handle-request
     server.listen test-port, -> done!
 
   teardown (done) ->
