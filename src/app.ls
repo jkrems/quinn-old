@@ -60,31 +60,32 @@ module.exports = create-app = ->
   app.error-handler = default-error-handler
   app.heartbeat-handler = default-heartbeat-handler
 
-  app <<< handle-request: (req, res) ->
-    return if app.heartbeat-handler req, res
+  app <<<
+    handle-request: (req, res) ->
+      return if app.heartbeat-handler req, res
 
-    last-resort-response = (err) ->
-      res.writeHead 500, { 'Content-Type': 'text/plain' }
-      res.end STATUS_CODES['500']
-      app.emit 'error', err
+      last-resort-response = (err) ->
+        res.writeHead 500, { 'Content-Type': 'text/plain' }
+        res.end STATUS_CODES['500']
+        app.emit 'error', err
 
-    patch-request req
+      patch-request req
 
-    {handler, params} = (match-route req) ? default-route
+      {handler, params} = (match-route req) ? default-route
 
-    result = Q.fcall handler, req, params
-    (result `send-to` res).catch( (err) ->
-      result = Q.fcall app.error-handler, req, err
-      result `send-to` res
-    ).catch last-resort-response
+      result = Q.fcall handler, req, params
+      (result `send-to` res).catch( (err) ->
+        result = Q.fcall app.error-handler, req, err
+        result `send-to` res
+      ).catch last-resort-response
+
+    all: (route-or-regex, stack-or-handler) ->
+      handler = stack-or-handler
+      push-route route-or-regex, handler
 
   for let method, verbs of HTTP_VERBS
     app[method] = (route-or-regex, stack-or-handler) ->
       handler = stack-or-handler
       push-route route-or-regex, handler, verbs
-
-  app <<< all: (route-or-regex, stack-or-handler) ->
-    handler = stack-or-handler
-    push-route route-or-regex, handler
 
   app
