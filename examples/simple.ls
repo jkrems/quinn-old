@@ -1,13 +1,10 @@
-# quinn
-
-```livescript
 require! {
   http.create-server
-  quinn.create-app
-  quinn.respond
+  '../lib/quinn'
+  '../lib/respond'
 }
 
-app = create-app!
+app = quinn.create-app!
 
 app.get '/hello/:name', (req, {name}) ->
   "Hello #{name}"
@@ -21,9 +18,3 @@ app.post '/echo', (req) ->
 server = create-server app.handle-request
 server.listen process.env.PORT || 5000, ->
   console.log 'Listening.'
-```
-
-## Influences
-
-Inspired by [Mach](https://github.com/machjs/mach) and me wanting to try out
-[LiveScript](http://livescript.net/).
