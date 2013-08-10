@@ -45,3 +45,9 @@ respond <<<
       'Content-Type': MIME.JSON
     } <<< _headers
     respond { body, status, headers }
+
+  redirect: (url, status = 302, _headers = {}) ->
+    headers = {
+      'Location': url
+    } <<< _headers
+    respond { body: null, status, headers }
