@@ -5,25 +5,18 @@ require! Q: q
 
 known-controllers = {}
 
-container =
-  respond: require './respond'
-
-inject = (box) ->
-  [...deps, fn] = box
-  args = deps.map (dep) ->
-    container[dep]
-  fn.apply null, args
-
 module.exports = controller-action = (description, options = {}) ->
   [ctrl, action] = description.split '#'
   action ?= 'main'
 
-  unless known-controllers[ctrl]?
+  controller = known-controllers[ctrl]
+  unless controller?
     throw new Error "Unknown controller: #{ctrl}"
 
-  ->
-    controller = inject known-controllers[ctrl]
-    controller[action].apply this, arguments
+  unless controller[action]?
+    throw new Error "Controller #{ctrl} has no action #{action}"
+
+  controller[action]
 
 register-controller = (name, controller) ->
   known-controllers[name] = controller
