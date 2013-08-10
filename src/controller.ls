@@ -6,17 +6,19 @@ require! Q: q
 known-controllers = {}
 
 module.exports = controller-action = (description, options = {}) ->
-  [ctrl, action] = description.split '#'
+  [module, action] = description.split '#'
   action ?= 'main'
 
-  controller = known-controllers[ctrl]
+  controller = known-controllers[module]
   unless controller?
-    throw new Error "Unknown controller: #{ctrl}"
+    throw new Error "No known controller for module #{module}"
 
   unless controller[action]?
-    throw new Error "Controller #{ctrl} has no action #{action}"
+    throw new Error "Controller of module #{module} has no action #{action}"
 
-  controller[action]
+  (req) ->
+    req <<< {module, action}
+    controller[action] ...
 
 register-controller = (name, controller) ->
   known-controllers[name] = controller
