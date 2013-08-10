@@ -4,7 +4,7 @@ require! '../helpers/test-app'
 require! expect: 'expect.js'
 
 suite 'quinn::app', ->
-  suite 'hello world app', ->
+  suite 'empty app', ->
     client = test-app ->
 
     test 'returns 404 for root url', (done) ->

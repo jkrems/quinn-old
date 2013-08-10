@@ -10,7 +10,8 @@ watch:
 	${LSC} --output lib --bare --compile --watch src
 
 .PHONY : test test-unit test-integration
-test: test-unit test-integration
+test: build
+	NODE_ENV=test ${MOCHA} -R spec --recursive test
 test-unit: build
 	NODE_ENV=test ${MOCHA} -R spec --recursive test/unit
 test-integration: build

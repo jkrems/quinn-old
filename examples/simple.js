@@ -1,9 +1,6 @@
-# quinn
-
-```
 var http = require('http');
 
-var quinn = require('quinn'),
+var quinn = require('../lib/quinn'),
     app = quinn.createApp(),
     respond = quinn.respond;
 
@@ -22,9 +19,3 @@ app.post("/echo", function(req) {
 
 http.createServer(app.handleRequest)
 .listen(process.env.PORT || 5000);
-```
-
-## Influences
-
-Inspired by [Mach](https://github.com/machjs/mach) and me wanting to try out
-[LiveScript](http://livescript.net/).
