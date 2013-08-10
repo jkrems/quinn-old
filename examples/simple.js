@@ -14,7 +14,7 @@ app.get("/api", function(req) {
 });
 
 app.post("/echo", function(req) {
-  return respond.json(req.body);
+  return respond.json(req.content);
 });
 
 http.createServer(app.handleRequest)
