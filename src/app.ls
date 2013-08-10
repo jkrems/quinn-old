@@ -1,11 +1,13 @@
 
 require! http.STATUS_CODES
+require! fs
 require! events.EventEmitter
 
 require! Q: q
 
 require! './router'
 require! './respond'
+require! './config'
 require! patch-request: './request'
 
 # Add sugar methods for common HTTP verbs. Note that GET defines
@@ -27,6 +29,17 @@ default-route =
 default-error-handler = (req, err) ->
   respond.text err.stack, 500
 
+default-heartbeat-handler =  (req, res) ->
+  return false if req.url != '/heartbeat'
+  heartbeat-file = config.app-path 'public', 'heartbeat.txt'
+  fs.exists heartbeat-file, (has-heartbeat) ->
+    if has-heartbeat
+      res.end 'ok'
+    else
+      res.writeHead 404
+      res.end 'No public/heartbeat.txt'
+  true
+
 map-result = (result) ->
   switch typeof! result
   | 'Function' => result
@@ -45,8 +58,11 @@ module.exports = create-app = ->
   app = new EventEmitter()
 
   app.error-handler = default-error-handler
+  app.heartbeat-handler = default-heartbeat-handler
 
   app <<< handle-request: (req, res) ->
+    return if app.heartbeat-handler req, res
+
     last-resort-response = (err) ->
       res.writeHead 500, { 'Content-Type': 'text/plain' }
       res.end STATUS_CODES['500']
