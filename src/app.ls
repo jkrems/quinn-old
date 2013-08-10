@@ -31,8 +31,8 @@ map-result = (result) ->
   | 'Array'    => respond.chunks result
   | _          => respond result
 
-send-response = (result, res) ->
-  map-result result <| res
+send-to = (result, res) ->
+  result.then map-result .fcall res
 
 module.exports = create-app = ->
   match-route = router!
@@ -45,8 +45,10 @@ module.exports = create-app = ->
 
     {handler, params} = (match-route req) ? default-route
 
-    result = handler req, params
-    send-response result, res
+    result = Q.fcall handler, req, params
+    (result `send-to` res).catch (err) ->
+      res.writeHead 500, { 'Content-Type': 'text/plain' }
+      res.end STATUS_CODES['500']
 
   for let method, verbs of HTTP_VERBS
     quinn-handler[method] = (route-or-regex, stack-or-handler) ->

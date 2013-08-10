@@ -40,3 +40,18 @@ suite 'quinn::app', ->
           expect(res.headers['content-length']).to.eql 2
           done()
         catch e then return done e
+
+  suite 'failing app', ->
+    client = test-app (app) ->
+      app.get '/', ->
+        throw new Error 'Imma bug'
+
+    test 'returns 500/error for root url', (done) ->
+      client '/', (err, res, body) ->
+        return done(err) if err?
+        try
+          expect(res.status-code).to.be 500
+          expect(body).to.be 'Internal Server Error'
+          expect(res.headers['content-type']).to.be 'text/plain'
+          done()
+        catch e then return done e
