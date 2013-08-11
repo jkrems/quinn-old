@@ -69,7 +69,7 @@ module.exports = create-app = ->
         res.end STATUS_CODES['500']
         app.emit 'error', err
 
-      patch-request req
+      patch-request req, res
 
       {handler, params} = (match-route req) ? default-route
 
