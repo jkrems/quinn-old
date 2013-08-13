@@ -71,7 +71,13 @@ module.exports = router = ->
       catch e
         throw e unless e.type is 'missing_param'
 
-    Url.format best-match if best-match?
+    if best-match?
+      Url.format best-match
+    else
+      paramHint =
+        if Object.keys(params).length > 0 then JSON.stringify params
+        else ''
+      throw new Error "No route found for #{ctrl-action}(#{paramHint})"
 
   match-route = ({method, pathname}) ->
     routes-to-try = (routes[method] ? []) ++ routes.ANY
