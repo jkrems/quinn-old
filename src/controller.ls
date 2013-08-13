@@ -7,7 +7,7 @@ known-controllers = {}
 
 module.exports = controller-action = (description, options = {}) ->
   [module, action] = description.split '#'
-  action ?= 'main'
+  action ?= 'index'
 
   controller = known-controllers[module]
   unless controller?

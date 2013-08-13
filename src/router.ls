@@ -32,7 +32,8 @@ module.exports = router = ->
       continue unless params
 
       # Make sure we have a boring old array without `.index` etc.
-      params = [] ++ params
+      [matched, ...segmentMatches] = params
+      params = [matched].concat segmentMatches.map unescape
       # Add the accessors for path segments
       Object.defineProperties params, accessors
 

@@ -14,7 +14,7 @@ module.exports = boot-server = (app-root) ->
     try require "#{app-root}/node_modules/quinn"
     catch e then require './quinn'
 
-  {controller, create-app, config} = quinn
+  {controller, create-app, config, render} = quinn
 
   config.load-app-config app-root
 
@@ -31,6 +31,8 @@ module.exports = boot-server = (app-root) ->
     { name, directory: path.join module-base, name }
 
   found-controllers = controller.discover-controllers modules
+
+  found-templates = render.load-templates modules
 
   app = create-app!
   routes? app

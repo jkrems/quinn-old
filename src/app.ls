@@ -8,7 +8,7 @@ require! Q: q
 require! './router'
 require! './respond'
 require! './config'
-require! patch-request: './request'
+require! './patch-incoming-request'
 
 # Add sugar methods for common HTTP verbs. Note that GET defines
 # routes for both GET *and* HEAD requests.
@@ -65,11 +65,11 @@ module.exports = create-app = ->
       return if app.heartbeat-handler req, res
 
       last-resort-response = (err) ->
-        res.writeHead 500, { 'Content-Type': 'text/plain' }
-        res.end STATUS_CODES['500']
         app.emit 'error', err
+        try res.writeHead 500, { 'Content-Type': 'text/plain' }
+        try res.end STATUS_CODES['500']
 
-      patch-request req, res
+      patch-incoming-request req, res
 
       {handler, params} = (match-route req) ? default-route
 

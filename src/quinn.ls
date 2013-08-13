@@ -4,3 +4,5 @@ module.exports =
   respond: require './respond'
   controller: require './controller'
   config: require './config'
+  render: require './render'
+  presenter: require './presenter'

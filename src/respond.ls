@@ -18,12 +18,18 @@ module.exports = respond = (result, res) -->
     Q.when body, (body) ->
       if 'string' == typeof body || Buffer.is-buffer body
         headers['Content-Length'] ?= Buffer.byte-length body
-      res.write-head status, headers
+      try res.write-head status, headers
 
       if body instanceof Readable
+        _responded = Q.defer!
+        body.on 'error', (err) -> _responded.reject err
+        res.on 'error', (err) -> _responded.reject err
+        res.once 'end', -> _responded.resolve true
         body.pipe res
+        _responded.promise
       else
         res.end body
+        true
 
 respond <<<
   text: (body = '', status = 200, _headers = {}) ->

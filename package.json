@@ -31,6 +31,10 @@
     "json-stringify-safe": "~5.0.0",
     "concat-stream": "~1.0.0",
     "deepmerge": "~0.2.7",
-    "cookie": "~0.1.0"
+    "cookie": "~0.1.0",
+    "hogan.js": "~2.0.0",
+    "glob": "~3.2.6",
+    "swig": "~0.14.0",
+    "node-uuid": "~1.4.0"
   }
 }
