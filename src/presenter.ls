@@ -3,4 +3,4 @@ i18n-helpers = (req) ->
   translate: (key) -> key
 
 module.exports = presenter = (req) ->
-  {} <<< I18n: i18n-helpers req
+  {route: req.router.reverse-route!} <<< I18n: i18n-helpers req

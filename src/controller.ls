@@ -6,7 +6,7 @@ require! Q: q
 known-controllers = {}
 
 module.exports = controller-action = (description, options = {}) ->
-  [module, action] = description.split '#'
+  [module, action] = description.split '.'
   action ?= 'index'
 
   controller = known-controllers[module]

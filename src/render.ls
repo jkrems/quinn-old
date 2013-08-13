@@ -1,5 +1,6 @@
 
 require! glob
+require! path
 require! fs.readFileSync
 
 require! swig
@@ -7,6 +8,48 @@ require! swig
 require! stream.Duplex
 require! 'swig/lib/helpers'
 require! uuid: 'node-uuid'
+
+cache-templates = false
+cache-allow-errors = false
+
+template-info = {}
+templates = {}
+
+_modules = {}
+
+template-error = (error) ->
+  render: -> "<pre>#{error.stack}</pre>"
+
+swig__compile-file = swig.compile-file
+swig.compile-file = (template-name, force-allow-errors) ->
+  template-name = template-name.replace /\/index$/, ''
+  if cache-templates && templates.hasOwnProperty template-name
+    return templates[template-name]
+
+  get = ->
+    [ module-name, ...segments ] = template-name.split '/'
+    module = _modules[module-name]
+    throw new Error "Unknown module: #{module-name}" unless module?
+
+    dirname = path.join module.directory, 'templates', ...segments
+    filename = dirname + '.html'
+
+    try-filename = (filename) ->
+      compiled = swig__compile-file filename, force-allow-errors
+
+      add-template template-name, { filename, compiled }
+      compiled
+    try
+      try-filename filename
+    catch err
+      throw err unless err.code == 'ENOENT'
+      try-filename dirname + '/index.html'
+
+  if cache-allow-errors || force-allow-errors
+    get!
+  else
+    try get!
+    catch e then template-error e
 
 promised-blocks = {}
 
@@ -122,6 +165,8 @@ swig.init do
           output.push "var __opts = #{opts};"
         else
           output.push helpers.set-var '__opts', parser.parse-variable opts
+      else
+        output.push 'var __opts = {};'
 
       output.concat [
         helpers.set-var '__key', parser.parse-variable @args[0]
@@ -142,6 +187,27 @@ swig.init do
         helpers.set-var '__path', parser.parse-variable @args[0]
         '_output += __path;'
       ].join ''
+    route: (indent, parser) ->
+      [route-str, opts] = @args
+      output = []
+
+      if opts?
+        if opts == 'true' || opts == 'false' || /^\{|^\[/.test(opts) || helpers.is-literal(opts)
+          console.log opts
+          output.push "var __opts = #{opts};"
+        else
+          output.push helpers.set-var '__opts', parser.parse-variable opts
+      else
+        output.push 'var __opts = {};'
+
+      log = (str) ->
+        console.log str
+        str
+
+      output.concat [
+        helpers.set-var '__r', parser.parse-variable route-str
+        '_output += _context.router.reverseRoute(["GET"], __r, __opts);'
+      ] .join ''
 
   extensions: { promised-block }
   filters:
@@ -149,15 +215,12 @@ swig.init do
     asset-url: (input) -> input
     _t: (input, opts) -> input + JSON.stringify opts
 
-templateInfo = {}
-templates = {}
-
 render = (templateName, context = {}, options = {}) ->
-  template = templates[templateName]
+  template = swig.compile-file templateName
   unless template?
     throw new Error "Template not found: #{templateName}"
 
-  rendered = template context
+  rendered = template.render context
 
   {
     status: options.status ? 200
@@ -172,22 +235,12 @@ add-template = (name, template) ->
   template
 
 load-templates = (modules) ->
-  modules.forEach ({name, directory}) ->
-    templatesPath = "#{directory}/templates/"
-
-    files = glob.sync "#{templatesPath}**/*.html"
-    files.forEach (filename) ->
-      rel = filename.replace templatesPath, '' .replace '.html', ''
-      pathSegments = [name].concat rel.split '/'
-      if pathSegments[pathSegments.length - 1] == 'index'
-        pathSegments.pop!
-
-      templateName = pathSegments.join '_'
-
-      source = readFileSync filename .toString!
-      compiled = swig.compile source, {filename: templateName}
-
-      add-template templateName, { filename, source, compiled }
+  _modules := modules.reduce(
+    (acc, module) ->
+      acc[module.name] = module
+      acc
+    {}
+  )
 
 render <<< {add-template, load-templates}
 

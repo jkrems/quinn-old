@@ -1,6 +1,8 @@
 
+require! lodash.omit
+
 const RESERVED_CHARACTER = /([.?*+^$[\]\\(){}-])/g
-const ROUTE_SEGMENT = /((:[a-z_$][a-z0-9_$]*)|[*.+()])/ig
+const ROUTE_SEGMENT = /((\{[a-z_$][a-z0-9_$]*\})|[*.+()])/ig
 
 escape-regex = (symbol) ->
   String symbol .replace RESERVED_CHARACTER, '\\$1'
@@ -22,10 +24,32 @@ module.exports = compile-route = (route) ->
     segments.push segment
     pattern
 
+  reverse-pattern = (params={}) ->
+    used-params = []
+
+    use-param = (name) ->
+      unless params[name]?
+        err = new Error "Missing route parameter: #{name}"
+        err.type = 'missing_param'
+        throw err
+      if -1 == used-params.index-of name
+        used-params.push name
+      params[name]
+
+    pathname = route.replace ROUTE_SEGMENT, (m) ->
+      switch m
+      | '*'           => use-param 'splat'
+      | <[ . + ( ) ]> => m
+      | _             => use-param m.substr(1, m.length - 2)
+
+    query = omit params, ...used-params
+
+    { pathname, query, used-params }
+
   pattern = route.replace ROUTE_SEGMENT, (m) ->
     switch m
     | '*'           => named-segment 'splat', '(.*?)'
     | <[ . + ( ) ]> => escape-regex m
-    | _             => named-segment m.substring(1), '([^./?#]+)'
+    | _             => named-segment m.substr(1, m.length - 2), '([^./?#]+)'
 
-  { segments, pattern: new RegExp "^#{pattern}$" }
+  { segments, reverse-pattern, pattern: new RegExp "^#{pattern}$" }

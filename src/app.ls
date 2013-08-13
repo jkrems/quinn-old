@@ -1,9 +1,11 @@
 
 require! http.STATUS_CODES
 require! fs
+require! path
 require! events.EventEmitter
 
 require! Q: q
+require! mime
 
 require! './router'
 require! './respond'
@@ -23,8 +25,45 @@ HTTP_VERBS =
 
 default-route =
   params: []
-  handler: ({method, pathname}) ->
-    respond.text "Cannot #{method} #{pathname}", 404
+  handler: ({method, pathname, headers}) ->
+    not-found = -> respond.text "Cannot #{method} #{pathname}", 404
+    if method is 'GET'
+      filename = config.app-path 'public', pathname
+      _response = Q.defer!
+      fs.stat filename, (err, stats) ->
+        if err?
+          if err.code == 'ENOENT'
+            return _response.resolve not-found!
+          else
+            return _response.reject err
+
+        if headers['if-modified-since']?
+          last-client-state = new Date that
+          if last-client-state.get-time! >= stats.mtime.get-time!
+            return _response.resolve {
+              status: 304
+              headers:
+                'Content-Type': mime.lookup filename
+                'Last-Modified': stats.mtime.toUTCString!
+            }
+
+        response =
+          status: 200
+          headers:
+            'Content-Type': mime.lookup filename
+            'Last-Modified': stats.mtime.toUTCString!
+          body: fs.createReadStream filename
+
+        response.body.once 'error', (err) ->
+          if err.code == 'ENOENT' then _response.resolve not-found!
+          else _response.reject err
+
+        response.body.once 'open', ->
+          _response.resolve response
+
+      _response.promise
+    else
+      not-found!
 
 default-error-handler = (req, err) ->
   respond.text err.stack, 500
@@ -53,9 +92,10 @@ send-to = (result, res) ->
 
 module.exports = create-app = ->
   match-route = router!
-  {push-route} = match-route
+  {push-route, reverse-route} = match-route
 
   app = new EventEmitter()
+  app <<< {match-route, reverse-route}
 
   app.error-handler = default-error-handler
   app.heartbeat-handler = default-heartbeat-handler
@@ -68,6 +108,8 @@ module.exports = create-app = ->
         try res.writeHead 500, { 'Content-Type': 'text/plain' }
         try res.write STATUS_CODES['500']
         try res.end!
+
+      req <<< { router: match-route }
 
       patch-incoming-request req, res
 
