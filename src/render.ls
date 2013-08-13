@@ -132,6 +132,11 @@ swig.init do
         helpers.set-var '__file', parser.parse-variable @args[0]
         '_output += __file;'
       ].join ''
+    js-url: (indent, parser) ->
+      [
+        helpers.set-var '__file', parser.parse-variable @args[0]
+        '_output += __file;'
+      ].join ''
     path-to: (indent, parser) ->
       [
         helpers.set-var '__path', parser.parse-variable @args[0]

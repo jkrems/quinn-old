@@ -20,6 +20,7 @@ module.exports = respond = (result, res) -->
         headers['Content-Length'] ?= Buffer.byte-length body
       try res.write-head status, headers
 
+      # if typeof body is 'object' && body instanceof Readable
       if body instanceof Readable
         _responded = Q.defer!
         body.on 'error', (err) -> _responded.reject err

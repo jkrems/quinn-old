@@ -65,27 +65,27 @@ module.exports = create-app = ->
       return if app.heartbeat-handler req, res
 
       last-resort-response = (err) ->
-        app.emit 'error', err
         try res.writeHead 500, { 'Content-Type': 'text/plain' }
-        try res.end STATUS_CODES['500']
+        try res.write STATUS_CODES['500']
+        try res.end!
 
       patch-incoming-request req, res
 
-      {handler, params} = (match-route req) ? default-route
+      {handler, module, action, params} = (match-route req) ? default-route
 
       result = Q.fcall handler, req, params
       (result `send-to` res).catch( (err) ->
         result = Q.fcall app.error-handler, req, err
         result `send-to` res
-      ).catch last-resort-response
+      ).catch last-resort-response .done!
 
-    all: (route-or-regex, stack-or-handler) ->
+    all: (route-or-regex, stack-or-handler, route-params) ->
       handler = stack-or-handler
-      push-route route-or-regex, handler
+      push-route route-or-regex, handler, route-params
 
   for let method, verbs of HTTP_VERBS
-    app[method] = (route-or-regex, stack-or-handler) ->
+    app[method] = (route-or-regex, stack-or-handler, route-params) ->
       handler = stack-or-handler
-      push-route route-or-regex, handler, verbs
+      push-route route-or-regex, handler, route-params, verbs
 
   app
