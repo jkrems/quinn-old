@@ -10,7 +10,7 @@ require! 'swig/lib/helpers'
 require! uuid: 'node-uuid'
 
 cache-templates = false
-cache-allow-errors = false
+allow-template-errors = false
 
 template-info = {}
 templates = {}
@@ -45,7 +45,7 @@ swig.compile-file = (template-name, force-allow-errors) ->
       throw err unless err.code == 'ENOENT'
       try-filename dirname + '/index.html'
 
-  if cache-allow-errors || force-allow-errors
+  if allow-template-errors || force-allow-errors
     get!
   else
     try get!
@@ -153,25 +153,10 @@ whenHelper.ends = true
 
 swig.init do
   root: __dirname + '/swigs'
+  cache: cache-templates
   allowErrors: true
   tags:
     when: whenHelper
-    _t: (indent, parser) ->
-      output = []
-
-      if @args.length > 1
-        opts = @args[1]
-        if opts == 'true' || opts == 'false' || /^\{|^\[/.test(opts) || helpers.is-literal(opts)
-          output.push "var __opts = #{opts};"
-        else
-          output.push helpers.set-var '__opts', parser.parse-variable opts
-      else
-        output.push 'var __opts = {};'
-
-      output.concat [
-        helpers.set-var '__key', parser.parse-variable @args[0]
-        '_output += _context.I18n.translate(__key, __opts);'
-      ] .join ''
     asset-url: (indent, parser) ->
       [
         helpers.set-var '__file', parser.parse-variable @args[0]
