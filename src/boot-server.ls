@@ -10,13 +10,14 @@ try-require = (ref) ->
     else throw e
 
 module.exports = boot-server = (app-root) ->
-  quinn =
+  {create-app, render} =
     try require "#{app-root}/node_modules/quinn"
     catch e then require './quinn'
 
-  {controller, create-app, render} = quinn
+  routes = try-require "#{app-root}/config/routes"
+  server-init = try-require "#{app-root}/config/server"
 
-  {config} = app = create-app!
+  {config, load-modules} = app = create-app!
 
   config.load-app-config app-root
   config.defaults do
@@ -24,20 +25,12 @@ module.exports = boot-server = (app-root) ->
       mountPoint: ''
       port: process.env.PORT || 3000
 
-  routes = try-require "#{app-root}/config/routes"
-  serverInit = try-require "#{app-root}/config/server"
-
-  module-base = path.join app-root, 'modules'
-  modules = readdir-sync module-base .map (name) ->
-    { name, directory: path.join module-base, name }
-
-  found-controllers = controller.discover-controllers modules
-  found-templates = render.load-templates modules
+  load-modules config.app-path 'modules'
 
   routes? app
 
   server = create-server!
-  serverInit? server
+  server-init? server
   server.on 'request', app.handle-request
 
   port = config.get 'server.port'

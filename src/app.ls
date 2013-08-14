@@ -122,6 +122,13 @@ module.exports = create-app = ->
         result `send-to` res
       ).catch last-resort-response .done!
 
+    load-modules: (module-base) ->
+      modules = readdir-sync module-base .map (name) ->
+        { name, directory: path.join module-base, name }
+
+      app.controller = controller.discover-controllers modules
+      # app. render.load-templates modules
+
     all: (route-or-regex, stack-or-handler, route-params) ->
       handler = stack-or-handler
       push-route route-or-regex, handler, route-params
