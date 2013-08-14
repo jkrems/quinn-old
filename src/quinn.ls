@@ -6,3 +6,4 @@ module.exports =
   config: require './config'
   render: require './render'
   page-model: require './page-model'
+  inject: require './inject'
