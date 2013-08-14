@@ -9,7 +9,7 @@ require! mime
 
 require! './router'
 require! './respond'
-require! './config'
+require! './config-store'
 require! './patch-incoming-request'
 
 # Add sugar methods for common HTTP verbs. Note that GET defines
@@ -25,7 +25,7 @@ HTTP_VERBS =
 
 default-route =
   params: []
-  handler: ({method, pathname, headers}) ->
+  handler: ({method, pathname, headers, config}) ->
     not-found = -> respond.text "Cannot #{method} #{pathname}", 404
     if method is 'GET'
       filename = config.app-path 'public', pathname
@@ -68,9 +68,9 @@ default-route =
 default-error-handler = (req, err) ->
   respond.text err.stack, 500
 
-default-heartbeat-handler =  (req, res) ->
-  return false if req.url != '/heartbeat'
-  heartbeat-file = config.app-path 'public', 'heartbeat.txt'
+default-heartbeat-handler =  ({url}, res, {app-path}) ->
+  return false if url != '/heartbeat'
+  heartbeat-file = app-path 'public', 'heartbeat.txt'
   fs.exists heartbeat-file, (has-heartbeat) ->
     if has-heartbeat
       res.end 'ok'
@@ -97,19 +97,20 @@ module.exports = create-app = ->
   app = new EventEmitter()
   app <<< {match-route, reverse-route}
 
+  app.config = config-store!
   app.error-handler = default-error-handler
   app.heartbeat-handler = default-heartbeat-handler
 
   app <<<
     handle-request: (req, res) ->
-      return if app.heartbeat-handler req, res
+      return if app.heartbeat-handler req, res, app.config
 
       last-resort-response = (err) ->
         try res.writeHead 500, { 'Content-Type': 'text/plain' }
         try res.write STATUS_CODES['500']
         try res.end!
 
-      req <<< { router: match-route }
+      req <<< { app, router: match-route, config: app.config }
 
       patch-incoming-request req, res
 
