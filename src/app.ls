@@ -13,6 +13,8 @@ require! './config-store'
 require! './patch-incoming-request'
 require! './renderer/stateless-swig'
 require! './discover-controllers'
+require! './localized-content'
+require! './services'
 
 # Add sugar methods for common HTTP verbs. Note that GET defines
 # routes for both GET *and* HEAD requests.
@@ -118,10 +120,14 @@ module.exports = create-app = ->
         router: match-route
         config: app.config
         render: app.render
+        service: app.service
+        i18n: app.localize req, res
 
       patch-incoming-request req, res
 
       {handler, module, action, params} = (match-route req) ? default-route
+
+      req.quinn-ctx.i18n.scope = [module] if module?
 
       result = Q.fcall handler, req, params
       (result `send-to` res).catch( (err) ->
@@ -135,9 +141,13 @@ module.exports = create-app = ->
 
       app.controller = discover-controllers modules
       app.render = stateless-swig modules, app.config
+      app.localize = localized-content modules, app.config
 
       match-route := router app.controller
       {push-route, reverse-route} := match-route
+
+    load-services: (services-config) !->
+      app.service = services services-config
 
     all: (route-or-regex, stack-or-handler, route-params) ->
       handler = stack-or-handler

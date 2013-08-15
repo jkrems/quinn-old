@@ -13,7 +13,7 @@ module.exports = boot-server = (app-root) ->
     try require "#{app-root}/node_modules/quinn"
     catch e then require './quinn'
 
-  {config, load-modules} = app = create-app!
+  {config, load-modules, load-services} = app = create-app!
 
   config.load-app-config app-root
   config.defaults do
@@ -22,6 +22,7 @@ module.exports = boot-server = (app-root) ->
       port: process.env.PORT || 3000
 
   load-modules config.app-path 'modules'
+  load-services config.get 'services'
 
   routes = try-require "#{app-root}/config/routes"
   routes? app

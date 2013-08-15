@@ -99,12 +99,18 @@ class ResolveTemplateStream extends Duplex
       | 'pending'
         @_next-block = block
         promise.then ~> @emit 'readable'
+        promise.fail ~> @emit 'readable'
         @push ''
-      | 'fulfilled'      => @push fn value
+      | 'fulfilled'      =>
+        try
+          evaluated = fn value
+          @push evaluated
+        catch render-err
+          @emit 'error', render-err
       | 'rejected'       => @emit 'error', reason
       | _                => @emit 'error', new Error "Promise in invalid state: #{promise}.state = #{state}"
 
 resolve-promised-blocks = (rendered, options) ->
   new ResolveTemplateStream rendered, options
 
-module.exports <<< {promised-blocks, resolve-promised-blocks, when-helper, ResolveTemplateStream}
+module.exports <<< {promised-block, resolve-promised-blocks, when-helper, ResolveTemplateStream}

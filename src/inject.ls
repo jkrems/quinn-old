@@ -1,4 +1,8 @@
 
+require! Q: q
+
+require! './page-model'
+
 target = (dependencies, target-fn) ->
   target-with-context = (ctx) ->
     args = dependencies.map (dep) ->
@@ -44,20 +48,27 @@ parse-target = (raw-target) ->
 
 request-context = (req, params, varargs) ->
   ctx = { req, params, varargs }
+  default-template =
+    if req.action == 'index' then req.module
+    else "#{req.module}/#{req.action}"
+
   Object.defineProperties ctx,
+    present:
+      value: (presenter, data) ->
+        Q.when data, presenter
+    service:
+      value: (svc-name) ->
+        req.quinn-ctx.service svc-name, ctx.req, ctx.i18n
     page:
       get: ->
-        require! './page-model'
-        page-model req
+        @_page ?= page-model req, req.quinn-ctx.i18n
+    i18n:
+      get: -> req.quinn-ctx.i18n
     render:
       get: ->
-        default-template =
-          if req.action == 'index' then req.module
-          else "#{req.module}/#{req.action}"
-
-        (tpl-name = default-template, tpl-ctx, tpl-ops) ->
+        @_render ?= (tpl-name = default-template, tpl-ctx, tpl-opts) ->
           # if the first argument isn't an string, assume shift
-          unless 'string' is typeof tpl-name
+          unless 'string' == typeof tpl-name
             [tpl-opts, tpl-ctx, tpl-name] = [tpl-ctx, tpl-name, default-template]
 
           tpl-ctx ?= ctx.page

@@ -1,6 +1,6 @@
 
 require! '../../lib/router'
-require! '../../lib/controller'
+require! '../../lib/discover-controllers'
 require! expect: 'expect.js'
 
 some-handler = ->
@@ -12,6 +12,12 @@ some-controller =
 controller.register-controller 'some', some-controller
 
 suite 'quinn::router', ->
+  match-route = null
+
+  setup ->
+    {}
+    match-route := router controller
+
   test 'returns null for an empty router', ->
     match-route = router!
     route = match-route method: 'GET', pathname: '/'
