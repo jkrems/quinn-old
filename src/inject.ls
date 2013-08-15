@@ -67,6 +67,8 @@ request-context = (req, params, varargs) ->
     render:
       get: ->
         @_render ?= (tpl-name = default-template, tpl-ctx, tpl-opts) ->
+          req.__is-html = true
+
           # if the first argument isn't an string, assume shift
           unless 'string' == typeof tpl-name
             [tpl-opts, tpl-ctx, tpl-name] = [tpl-ctx, tpl-name, default-template]

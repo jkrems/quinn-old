@@ -72,7 +72,13 @@ default-route =
       not-found!
 
 default-error-handler = (req, err) ->
-  respond.text err.stack, 500
+  if req.__is-html
+    [summary, ...trace] = err.stack.split "\n"
+    summary = summary.replace /^(\w*)Error: /, '<strong>$1Error:</strong> '
+    body    = "<pre>#{summary}\n#{trace.join '\n'}</pre>"
+    respond.text body, 500
+  else
+    respond.text err.stack, 500
 
 default-heartbeat-handler =  ({url}, res, {app-path}) ->
   return false if url != '/heartbeat'
