@@ -1,8 +1,6 @@
 
 require! Url: url
 
-require! './controller'
-
 require! './utils/compile-route'
 
 require! lodash.is-equal
@@ -26,7 +24,7 @@ create-route = (route-or-regex, base-route) ->
 
 const ANY = <[ ANY ]>
 
-module.exports = router = ->
+module.exports = router = (controller) ->
   routes =
     ANY: []
 

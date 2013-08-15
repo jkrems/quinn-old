@@ -51,7 +51,6 @@ request-context = (req, params, varargs) ->
         page-model req
     render:
       get: ->
-        require! './render'
         default-template =
           if req.action == 'index' then req.module
           else "#{req.module}/#{req.action}"
@@ -62,7 +61,7 @@ request-context = (req, params, varargs) ->
             [tpl-opts, tpl-ctx, tpl-name] = [tpl-ctx, tpl-name, default-template]
 
           tpl-ctx ?= ctx.page
-          render tpl-name, tpl-ctx, tpl-opts
+          req.quinn-ctx.render tpl-name, tpl-ctx, tpl-opts
   ctx
 
 action = (raw-target) ->

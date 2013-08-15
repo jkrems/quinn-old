@@ -11,6 +11,8 @@ require! './router'
 require! './respond'
 require! './config-store'
 require! './patch-incoming-request'
+require! './renderer/stateless-swig'
+require! './discover-controllers'
 
 # Add sugar methods for common HTTP verbs. Note that GET defines
 # routes for both GET *and* HEAD requests.
@@ -25,7 +27,9 @@ HTTP_VERBS =
 
 default-route =
   params: []
-  handler: ({method, pathname, headers, config}) ->
+  handler: ({method, pathname, headers, quinn-ctx}) ->
+    {config} = quinn-ctx
+
     not-found = -> respond.text "Cannot #{method} #{pathname}", 404
     if method is 'GET'
       filename = config.app-path 'public', pathname
@@ -91,8 +95,8 @@ send-to = (result, res) ->
   result.then map-result .fcall res
 
 module.exports = create-app = ->
-  match-route = router!
-  {push-route, reverse-route} = match-route
+  push-route = reverse-route = match-route = ->
+    throw new Error "Load modules before doing any routing"
 
   app = new EventEmitter()
   app <<< {match-route, reverse-route}
@@ -110,7 +114,10 @@ module.exports = create-app = ->
         try res.write STATUS_CODES['500']
         try res.end!
 
-      req <<< { app, router: match-route, config: app.config }
+      req.quinn-ctx =
+        router: match-route
+        config: app.config
+        render: app.render
 
       patch-incoming-request req, res
 
@@ -122,12 +129,15 @@ module.exports = create-app = ->
         result `send-to` res
       ).catch last-resort-response .done!
 
-    load-modules: (module-base) ->
-      modules = readdir-sync module-base .map (name) ->
+    load-modules: (module-base) !->
+      modules = fs.readdir-sync module-base .map (name) ->
         { name, directory: path.join module-base, name }
 
-      app.controller = controller.discover-controllers modules
-      # app. render.load-templates modules
+      app.controller = discover-controllers modules
+      app.render = stateless-swig modules, app.config
+
+      match-route := router app.controller
+      {push-route, reverse-route} := match-route
 
     all: (route-or-regex, stack-or-handler, route-params) ->
       handler = stack-or-handler

@@ -3,7 +3,7 @@ require! path
 
 require! Q: q
 
-discover-controllers = ->
+module.exports = discover-controllers = (modules) ->
   known-controllers = {}
 
   modules.for-each (module) ->

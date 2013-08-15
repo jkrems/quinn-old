@@ -3,7 +3,8 @@ i18n-helpers = (req) ->
   _t: (key, ...opts) -> key
 
 url-helpers = (req) ->
-  {route: req.router.reverse-route!}
+  route: req.quinn-ctx.router.reverse-route!
+  asset-url: (filename) -> filename
 
 module.exports = page-model = (req) ->
   page = {}

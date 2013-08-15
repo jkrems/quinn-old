@@ -1,7 +1,6 @@
 
 require! path
 require! http.create-server
-require! fs.readdir-sync
 
 try-require = (ref) ->
   try require ref
@@ -14,9 +13,6 @@ module.exports = boot-server = (app-root) ->
     try require "#{app-root}/node_modules/quinn"
     catch e then require './quinn'
 
-  routes = try-require "#{app-root}/config/routes"
-  server-init = try-require "#{app-root}/config/server"
-
   {config, load-modules} = app = create-app!
 
   config.load-app-config app-root
@@ -27,9 +23,11 @@ module.exports = boot-server = (app-root) ->
 
   load-modules config.app-path 'modules'
 
+  routes = try-require "#{app-root}/config/routes"
   routes? app
 
   server = create-server!
+  server-init = try-require "#{app-root}/config/server"
   server-init? server
   server.on 'request', app.handle-request
 
