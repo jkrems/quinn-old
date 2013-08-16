@@ -37,6 +37,7 @@ target-from-fn = (target-fn) ->
   source = target-fn.to-string!.replace COMMENTS_PATTERN, ''
   [_, fn-args] = source.match ARGS_PATTERN
   dependencies = fn-args.split ',' .map (arg) -> arg.replace ARG_PATTERN, '$2'
+  dependencies = dependencies.filter (dep) -> dep
 
   target dependencies, target-fn
 
