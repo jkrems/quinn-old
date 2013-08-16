@@ -5,8 +5,7 @@ require! expect: 'expect.js'
 
 suite 'quinn::app', ->
   suite 'empty app', ->
-    client = test-app (app) ->
-      app.init-modules!
+    client = test-app ->
 
     test 'returns 404 for root url', (done) ->
       client '/', (err, res, body) ->
@@ -30,7 +29,6 @@ suite 'quinn::app', ->
 
   suite 'simple app', ->
     client = test-app (app) ->
-      app.init-modules!
       app.get '/', -> 'ok'
 
     test 'returns 200/ok for root url', (done) ->
@@ -45,7 +43,6 @@ suite 'quinn::app', ->
 
   suite 'failing app', ->
     client = test-app (app) ->
-      app.init-modules!
       app.get '/', ->
         throw new Error 'Imma bug'
 

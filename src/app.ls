@@ -103,8 +103,7 @@ send-to = (result, res) ->
   result.then map-result .fcall res
 
 module.exports = create-app = ->
-  push-route = reverse-route = match-route = ->
-    throw new Error "Load modules before doing any routing"
+  push-route = reverse-route = match-route = null
 
   app = new EventEmitter()
   app <<< {match-route, reverse-route}
@@ -169,5 +168,8 @@ module.exports = create-app = ->
     app[method] = (route-or-regex, stack-or-handler, route-params) ->
       handler = stack-or-handler
       push-route route-or-regex, handler, route-params, verbs
+
+  # make sure everything works without fancy stuff
+  app.init-modules!
 
   app
