@@ -122,24 +122,28 @@ module.exports = create-app = ->
         try res.write STATUS_CODES['500']
         try res.end!
 
+      patch-incoming-request req, res
+
       req.quinn-ctx =
+        controller: app.controller
         router: match-route
         config: app.config
         render: app.render
         service: app.service
         i18n: app.localize req, res
-
-      patch-incoming-request req, res
+        execute-handler: app.execute-handler
 
       {handler, module, action, params} = (match-route req) ? default-route
 
-      req.quinn-ctx.i18n.scope = [module] if module?
-
-      result = Q.fcall handler, req, params
+      result = app.execute-handler req, {handler, module, action, params}
       (result `send-to` res).catch( (err) ->
         result = Q.fcall app.error-handler, req, err
         result `send-to` res
       ).catch last-resort-response .done!
+
+    execute-handler: (req, {handler, module, action, params}) ->
+      req.quinn-ctx.i18n.scope = [module] if module?
+      Q.fcall handler, req, params
 
     load-modules: (module-base) !->
       modules = fs.readdir-sync module-base .map (name) ->

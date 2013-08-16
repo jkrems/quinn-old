@@ -65,16 +65,30 @@ request-context = (req, params, varargs) ->
     i18n:
       get: -> req.quinn-ctx.i18n
     render:
-      get: ->
-        @_render ?= (tpl-name = default-template, tpl-ctx, tpl-opts) ->
-          req.__is-html = true
+      value: (tpl-name = default-template, tpl-ctx, tpl-opts) ->
+        req.__is-html = true
 
-          # if the first argument isn't an string, assume shift
-          unless 'string' == typeof tpl-name
-            [tpl-opts, tpl-ctx, tpl-name] = [tpl-ctx, tpl-name, default-template]
+        # if the first argument isn't an string, assume shift
+        unless 'string' == typeof tpl-name
+          [tpl-opts, tpl-ctx, tpl-name] = [tpl-ctx, tpl-name, default-template]
 
-          tpl-ctx ?= ctx.page
-          req.quinn-ctx.render tpl-name, tpl-ctx, tpl-opts
+        tpl-ctx ?= ctx.page
+        req.quinn-ctx.render tpl-name, tpl-ctx, tpl-opts
+    forward:
+      value: (fwd-module-action, override-params = {}) ->
+        fwd-params = {}
+        fwd-params <<< params
+        fwd-params <<< override-params
+
+        [fwd-module, fwd-action] = fwd-module-action.split '.'
+        fwd-module ||= req.module
+        fwd-action ||= 'index'
+
+        req.quinn-ctx.execute-handler req,
+          module: fwd-module
+          action: fwd-action
+          handler: req.quinn-ctx.controller "#{fwd-module}.#{fwd-action}"
+          params: fwd-params
   ctx
 
 action = (raw-target) ->
