@@ -9,6 +9,7 @@ some-controller =
   foo: -> 'ok'
   index: -> 'idx'
 
+controller = discover-controllers []
 controller.register-controller 'some', some-controller
 
 suite 'quinn::router', ->
@@ -63,26 +64,34 @@ suite 'quinn::router', ->
     expect(route.params).to.eql [ '/jim/bar', 'jim' ]
     expect(route.params.name).to.be 'jim'
 
-  test 'reverse routing', ->
-    match-route = router!
-    match-route.push-route '/zapp', 'some.foo'
-    match-route.push-route '/{name}/bar', 'some.foo'
-    match-route.push-route '/rainbow.*', 'some.foo'
+  suite 'reverse routing', ->
+    reverse-route = null
 
-    rev = match-route.reverse-route! 'some.foo', name: 'zzz'
-    expect(rev).to.be '/zzz/bar'
+    setup ->
+      match-route = router controller
+      match-route.push-route '/zapp', 'some.foo'
+      match-route.push-route '/{name}/bar', 'some.foo'
+      match-route.push-route '/rainbow.*', 'some.foo'
+      {reverse-route} := match-route
 
-    rev = match-route.reverse-route! 'some.foo'
-    expect(rev).to.be '/zapp'
+    test 'can route with placeholder', ->
+      rev = reverse-route! 'some.foo', name: 'zzz'
+      expect(rev).to.be '/zzz/bar'
 
-    rev = match-route.reverse-route! 'some.foo', name: '123', q: 'grep'
-    expect(rev).to.be '/123/bar?q=grep'
+    test 'accepts route without placeholder', ->
+      rev = reverse-route! 'some.foo'
+      expect(rev).to.be '/zapp'
 
-    rev = match-route.reverse-route! 'some.foo', q: 'grep'
-    expect(rev).to.be '/zapp?q=grep'
+    test 'add additional params as query params', ->
+      rev = reverse-route! 'some.foo', name: '123', q: 'grep'
+      expect(rev).to.be '/123/bar?q=grep'
 
-    rev = match-route.reverse-route! 'some.foo', splat: 'html'
-    expect(rev).to.be '/rainbow.html'
+      rev = reverse-route! 'some.foo', q: 'grep'
+      expect(rev).to.be '/zapp?q=grep'
 
-    rev = match-route.reverse-route! 'some.foo', 'splat', 'html'
-    expect(rev).to.be '/rainbow.html'
+    test 'supports * -> splat', ->
+      rev = reverse-route! 'some.foo', splat: 'html'
+      expect(rev).to.be '/rainbow.html'
+
+      rev = reverse-route! 'some.foo', 'splat', 'html'
+      expect(rev).to.be '/rainbow.html'

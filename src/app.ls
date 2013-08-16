@@ -130,7 +130,7 @@ module.exports = create-app = ->
         config: app.config
         render: app.render
         service: app.service
-        i18n: app.localize req, res
+        i18n: app.localize? req, res
         execute-handler: app.execute-handler
 
       {handler, module, action, params} = (match-route req) ? default-route
@@ -145,16 +145,18 @@ module.exports = create-app = ->
       req.quinn-ctx.i18n.scope = [module] if module?
       Q.fcall handler, req, params
 
-    load-modules: (module-base) !->
-      modules = fs.readdir-sync module-base .map (name) ->
-        { name, directory: path.join module-base, name }
-
+    init-modules: (modules = []) ->
       app.controller = discover-controllers modules
       app.render = stateless-swig modules, app.config
       app.localize = localized-content modules, app.config
 
       match-route := router app.controller
       {push-route, reverse-route} := match-route
+
+    load-modules: (module-base) !->
+      modules = fs.readdir-sync module-base .map (name) ->
+        { name, directory: path.join module-base, name }
+      app.init-modules modules
 
     load-services: (services-config) !->
       app.service = services services-config

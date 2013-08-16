@@ -8,6 +8,7 @@ require! '../helpers/test-app'
 suite 'quinn::respond', ->
   suite 'json', ->
     client = test-app (app) ->
+      app.init-modules!
       app.get '/obj', -> respond.json foo: 'bar'
       app.get '/void', -> respond.json!
       app.post '/echo', (req)-> respond.json req.content
