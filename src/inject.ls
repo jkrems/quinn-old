@@ -93,7 +93,7 @@ request-context = (req, params, varargs) ->
       get: ->
         unless @_i18n?
           @_i18n = app.localize? req
-          @_i18n <<< {scope: [module]} if req.module?
+          @_i18n <<< {scope: [req.module]} if req.module?
         @_i18n
     session:
       value: req.session
