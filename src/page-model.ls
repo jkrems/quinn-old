@@ -18,7 +18,7 @@ i18n-helpers = (i18n) ->
     i18n.translate key, opts
 
 url-helpers = (req) ->
-  route: req.quinn-ctx.router.reverse-route!
+  route: req.router.reverse-route!
   asset-url: (filename) -> filename
 
 module.exports = page-model = (req, i18n) ->

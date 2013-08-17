@@ -78,9 +78,15 @@ with-session = (req, res) ->
   req.session =
     if req.cookies['quinn.session']
       decipher = create-decipher 'aes192', session-secret
-      decrypted  = decipher.update req.cookies['quinn.session'], 'base64', 'utf8'
-      decrypted += decipher.final 'utf8'
-      try JSON.parse decrypted
+      try
+        from-cookie = JSON.parse req.cookies['quinn.session']
+        decrypted   = decipher.update from-cookie.e, 'base64', 'utf8'
+        decrypted  += decipher.final 'utf8'
+        JSON.parse decrypted
+      catch err
+        # TODO: this fails an awful lot in node v0.11.5 - figure out why
+        # console.log err.stack
+        {}
     else {}
 
   res.on 'header', ->
@@ -89,7 +95,8 @@ with-session = (req, res) ->
       serialized = JSON.stringify req.session
       encrypted  = cipher.update serialized, 'utf8', 'base64'
       encrypted += cipher.final 'base64'
-      res.set-header 'Set-Cookie', cookie.serialize 'quinn.session', encrypted
+      for-cookie = JSON.stringify { e: encrypted }
+      res.set-header 'Set-Cookie', cookie.serialize 'quinn.session', for-cookie
     else
       res.set-header 'Set-Cookie', cookie.serialize 'quinn.session', null
 

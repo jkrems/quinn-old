@@ -40,7 +40,7 @@ module.exports = localized-content = (modules, config) ->
 
     fallbacks.reduce merge-fallback, {}
 
-  localize = (req, res) ->
+  localize = (req) ->
     i18n =
       country: 'US'
       lang: 'en'

@@ -3,6 +3,26 @@ require! Q: q
 
 require! './page-model'
 
+wrap-generator-fn = (make-generator) ->
+  ->
+    continuer = (verb, arg) -->
+      try
+        result = generator[verb] arg
+        if result.done
+          result.value
+        else
+          Q.when result.value, callback, errback
+      catch exception
+        Q.reject exception
+
+    generator = makeGenerator ...
+    if 'Generator' == typeof! generator
+      callback = continuer 'next'
+      errback = continuer 'throw'
+      callback!
+    else
+      Q.when generator
+
 target = (dependencies, target-fn) ->
   target-with-context = (ctx) ->
     args = dependencies.map (dep) ->
@@ -10,7 +30,7 @@ target = (dependencies, target-fn) ->
       else
         err = new Error "Unresolved dependency #{JSON.stringify String dep}"
         err.meta:
-          target-fn: target-fn.to-string!
+          target-fn: target-fn.name
           dependencies: dependencies
           dependency: dep
         throw err
@@ -31,13 +51,16 @@ target = (dependencies, target-fn) ->
 
 # ported from angular.js
 COMMENTS_PATTERN = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg
-ARGS_PATTERN = /^function\s*[^\(]*\(\s*([^\)]*)\)/m
+ARGS_PATTERN = /^function\s*(\*)?\s*[^\(]*\(\s*([^\)]*)\)/m
 ARG_PATTERN = /^\s*(_?)(\S+?)\1\s*$/
 target-from-fn = (target-fn) ->
   source = target-fn.to-string!.replace COMMENTS_PATTERN, ''
-  [_, fn-args] = source.match ARGS_PATTERN
+  [_, gen-marker, fn-args] = source.match ARGS_PATTERN
   dependencies = fn-args.split ',' .map (arg) -> arg.replace ARG_PATTERN, '$2'
   dependencies = dependencies.filter (dep) -> dep
+
+  # support harmony generators
+  target-fn = wrap-generator-fn target-fn
 
   target dependencies, target-fn
 
@@ -48,10 +71,13 @@ parse-target = (raw-target) ->
   | _          => throw new Error "Invalid inject target: #{String raw-target}"
 
 request-context = (req, params, varargs) ->
-  ctx = { req, params, varargs }
+  {app} = req
   default-template =
     if req.action == 'index' then req.module
     else "#{req.module}/#{req.action}"
+
+  ctx = { req, params, varargs } <<< app{controller,config}
+  ctx <<< req.quinn-ext if req.quinn-ext?
 
   Object.defineProperties ctx,
     present:
@@ -59,12 +85,22 @@ request-context = (req, params, varargs) ->
         Q.when data, presenter
     service:
       value: (svc-name) ->
-        req.quinn-ctx.service svc-name, ctx.req, ctx.i18n
+        app.service svc-name, ctx.req, ctx.i18n
     page:
       get: ->
-        @_page ?= page-model req, req.quinn-ctx.i18n
+        @_page ?= page-model req, @i18n
     i18n:
-      get: -> req.quinn-ctx.i18n
+      get: ->
+        unless @_i18n?
+          @_i18n = app.localize? req
+          @_i18n <<< {scope: [module]} if req.module?
+        @_i18n
+    session:
+      value: req.session
+    cookies:
+      value: req.cookies
+    config:
+      value: app.config
     render:
       value: (tpl-name = default-template, tpl-ctx, tpl-opts) ->
         req.__is-html = true
@@ -74,7 +110,7 @@ request-context = (req, params, varargs) ->
           [tpl-opts, tpl-ctx, tpl-name] = [tpl-ctx, tpl-name, default-template]
 
         tpl-ctx ?= ctx.page
-        req.quinn-ctx.render tpl-name, tpl-ctx, tpl-opts
+        app.render tpl-name, tpl-ctx, tpl-opts
     forward:
       value: (fwd-module-action, override-params = {}) ->
         fwd-params = {}
@@ -85,12 +121,11 @@ request-context = (req, params, varargs) ->
         fwd-module ||= req.module
         fwd-action ||= 'index'
 
-        req.quinn-ctx.execute-handler req,
+        app.execute-handler req,
           module: fwd-module
           action: fwd-action
-          handler: req.quinn-ctx.controller "#{fwd-module}.#{fwd-action}"
+          handler: app.controller "#{fwd-module}.#{fwd-action}"
           params: fwd-params
-  ctx
 
 action = (raw-target) ->
   target-with-context = parse-target raw-target

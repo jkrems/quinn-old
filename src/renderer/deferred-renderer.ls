@@ -98,17 +98,26 @@ class ResolveTemplateStream extends Duplex
       switch state
       | 'pending'
         @_next-block = block
-        promise.then ~> @emit 'readable'
-        promise.fail ~> @emit 'readable'
+        unless @_already-waiting
+          @_already-waiting = true
+          promise.then ~>
+            @read 0
+          promise.fail ~>
+            @read 0
         @push ''
       | 'fulfilled'      =>
+        @_already-waiting = false
         try
           evaluated = fn value
           @push evaluated
         catch render-err
           @emit 'error', render-err
-      | 'rejected'       => @emit 'error', reason
-      | _                => @emit 'error', new Error "Promise in invalid state: #{promise}.state = #{state}"
+      | 'rejected'       =>
+        @_already-waiting = false
+        @emit 'error', reason
+      | _                =>
+        @_already-waiting = false
+        @emit 'error', new Error "Promise in invalid state: #{promise}.state = #{state}"
 
 resolve-promised-blocks = (rendered, options) ->
   new ResolveTemplateStream rendered, options

@@ -29,8 +29,8 @@ HTTP_VERBS =
 
 default-route =
   params: []
-  handler: ({method, pathname, headers, quinn-ctx}) ->
-    {config} = quinn-ctx
+  handler: ({method, pathname, headers, app}) ->
+    {config} = app
 
     not-found = -> respond.text "Cannot #{method} #{pathname}", 404
     if method is 'GET'
@@ -123,14 +123,11 @@ module.exports = create-app = ->
 
       patch-incoming-request req, res
 
-      req.quinn-ctx =
-        controller: app.controller
+      req <<< {
+        app
         router: match-route
-        config: app.config
-        render: app.render
-        service: app.service
-        i18n: app.localize? req, res
-        execute-handler: app.execute-handler
+        quinn-ext: {}
+      }
 
       {handler, module, action, params} = (match-route req) ? default-route
 
@@ -141,7 +138,7 @@ module.exports = create-app = ->
       ).catch last-resort-response .done!
 
     execute-handler: (req, {handler, module, action, params}) ->
-      req.quinn-ctx.i18n.scope = [module] if module?
+      req <<< {module, action}
       Q.fcall handler, req, params
 
     init-modules: (modules = []) ->
