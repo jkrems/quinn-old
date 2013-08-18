@@ -77,24 +77,28 @@ with-session = (req, res) ->
 
   req.session =
     if req.cookies['quinn.session']
-      decipher = create-decipher 'aes192', session-secret
       try
         from-cookie = JSON.parse req.cookies['quinn.session']
-        decrypted   = decipher.update from-cookie.e, 'base64', 'utf8'
-        decrypted  += decipher.final 'utf8'
+        decrypted   = new Buffer(from-cookie.e, 'base64').to-string 'ascii'
+        # TODO: this fails an awful lot in node v0.11.5 - figure out why
+        # decipher = create-decipher 'aes192', session-secret
+        # decrypted   = decipher.update from-cookie.e, 'base64', 'utf8'
+        # decrypted  += decipher.final 'utf8'
         JSON.parse decrypted
       catch err
-        # TODO: this fails an awful lot in node v0.11.5 - figure out why
-        # console.log err.stack
+        
+        console.log err.stack
         {}
     else {}
 
   res.on 'header', ->
     if req.session?
-      cipher = create-cipher 'aes192', session-secret
       serialized = JSON.stringify req.session
-      encrypted  = cipher.update serialized, 'utf8', 'base64'
-      encrypted += cipher.final 'base64'
+      # TODO: this fails an awful lot in node v0.11.5 - figure out why
+      # cipher = create-cipher 'aes192', session-secret
+      # encrypted  = cipher.update serialized, 'utf8', 'base64'
+      # encrypted += cipher.final 'base64'
+      encrypted  = new Buffer(serialized, 'ascii').to-string 'base64'
       for-cookie = JSON.stringify { e: encrypted }
       res.set-header 'Set-Cookie', cookie.serialize 'quinn.session', for-cookie
     else
