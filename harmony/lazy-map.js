@@ -1,12 +1,9 @@
 'use strict';
 
-let wrapGenerator = require('./wrap-generator'),
-    Q             = require('q');
+let Q = require('q');
 
 module.exports = function lazyMap(collection, fn, bufferSize) {
   if (null == bufferSize) { bufferSize = 1; }
-
-  let wrappedFn = wrapGenerator(fn);
 
   function* iterate() {
     let key, inputQueue = [], resultQueue = [];
@@ -18,7 +15,7 @@ module.exports = function lazyMap(collection, fn, bufferSize) {
       // make sure resultQueue has at least bufferSize + 1 elements
       let diff = Math.max(0, (bufferSize - resultQueue.length + 1));
       let newResults = inputQueue.splice(0, diff).map(function(key) {
-        return wrappedFn(collection[key], key, collection);
+        return fn(collection[key], key, collection);
       });
       // add the new results to the end of the result queue
       resultQueue = resultQueue.concat(newResults);
