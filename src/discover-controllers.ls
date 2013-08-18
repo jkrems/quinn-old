@@ -12,8 +12,10 @@ module.exports = discover-controllers = (modules) ->
       try
         known-controllers[module.name] = require controllerFile
       catch err
-        if err.code == 'MODULE_NOT_FOUND' then null
-        else throw err
+        if err.code == 'MODULE_NOT_FOUND' && err.message.indexOf("'#{controllerFile}'") !== -1
+          null
+        else
+          throw err
 
   controller-action = (description, options = {}) ->
     [module, action] = description.split '.'

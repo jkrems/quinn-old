@@ -14,6 +14,8 @@ require '../vendor/connect/patch'
 with-parsed-url = (req) ->
   [pathname, search] = req.url.split '?'
   query = querystring.parse search
+  if pathname.length > 1 && pathname[pathname.length - 1] === '/'
+    pathname = pathname.substr 0, pathname.length - 1
 
   req.protocol = req.headers['x-forwarded-proto'] ? 
 
