@@ -2,26 +2,7 @@
 require! Q: q
 
 require! './page-model'
-
-wrap-generator-fn = (make-generator) ->
-  ->
-    continuer = (verb, arg) -->
-      try
-        result = generator[verb] arg
-        if result.done
-          result.value
-        else
-          Q.when result.value, callback, errback
-      catch exception
-        Q.reject exception
-
-    generator = makeGenerator ...
-    if 'Generator' == typeof! generator
-      callback = continuer 'next'
-      errback = continuer 'throw'
-      callback!
-    else
-      Q.when generator
+require! '../harmony/wrap-generator'
 
 target = (dependencies, target-fn) ->
   target-with-context = (ctx) ->
@@ -60,7 +41,7 @@ target-from-fn = (target-fn) ->
   dependencies = dependencies.filter (dep) -> dep
 
   # support harmony generators
-  target-fn = wrap-generator-fn target-fn
+  target-fn = wrap-generator target-fn
 
   target dependencies, target-fn
 
